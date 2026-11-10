@@ -30,6 +30,19 @@ export const connectDB = async () => {
 
     await db.command({ ping: 1 });
 
+    await Promise.all([
+  db.collection("studios").createIndex({ createdAt: -1 }),
+  db.collection("studios").createIndex({ hostId: 1 }),
+  db.collection("bookings").createIndex({
+    studioId: 1,
+    status: 1,
+    startAt: 1,
+    endAt: 1,
+  }),
+  db.collection("bookings").createIndex({ renterId: 1, createdAt: -1 }),
+  db.collection("bookings").createIndex({ hostId: 1, createdAt: -1 }),
+]);
+
     console.log(`MongoDB connected successfully: ${dbName}`);
 
     return db;
