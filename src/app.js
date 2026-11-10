@@ -6,7 +6,10 @@ import studioRoutes from "./routes/studio.routes.js";
 import { toNodeHandler } from "better-auth/node";
 import { getAuth } from "./auth/auth.js";
 import bookingRoutes from "./routes/booking.routes.js";
-
+import {
+  notFound,
+  errorHandler,
+} from "./middleware/error.middleware.js";
 
 const app = express();
 
@@ -36,3 +39,5 @@ app.get("/api/health", (req, res) => {
 app.use("/api/studios", studioRoutes);
 app.use("/api/bookings", bookingRoutes);
 export default app;
+app.use(notFound);
+app.use(errorHandler);
