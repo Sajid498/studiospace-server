@@ -168,3 +168,59 @@ export const cancelBooking = async (req, res, next) => {
     next(error);
   }
 };
+
+export const updateBookingStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid booking ID",
+      });
+    }
+
+    const allowedTransitions = {
+      Confirmed: "Pending",
+      Completed: "Confirmed",
+    };
+
+    if (!allowedTransitions[status]) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid booking status",
+      });
+    }
+
+    const db = getDB();
+
+    const result = await db.collection("bookings").updateOne(
+      {
+        _id: new ObjectId(id),
+        hostId: req.user.id,
+        status: allowedTransitions[status],
+      },
+      {
+        $set: {
+          status,
+          updatedAt: new Date(),
+        },
+      }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found or status transition not allowed",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Booking status updated to ${status}`,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
