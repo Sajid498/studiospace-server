@@ -3,6 +3,8 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import studioRoutes from "./routes/studio.routes.js";
+import { toNodeHandler } from "better-auth/node";
+import { getAuth } from "./auth/auth.js";
 
 const app = express();
 
@@ -12,6 +14,10 @@ app.use(
     credentials: true,
   })
 );
+
+app.all("/api/auth/*splat", (req, res) => {
+  return toNodeHandler(getAuth())(req, res);
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
