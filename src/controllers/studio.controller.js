@@ -153,3 +153,37 @@ export const createStudio = async (req, res, next) => {
     next(error);
   }
 };
+
+export const deleteStudio = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid studio ID",
+      });
+    }
+
+    const db = getDB();
+
+    const result = await db.collection("studios").deleteOne({
+      _id: new ObjectId(id),
+      hostId: req.user.id,
+    });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Studio not found or you are not authorized to delete it",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Studio deleted successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
