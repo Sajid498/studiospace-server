@@ -5,6 +5,8 @@ import cookieParser from "cookie-parser";
 import studioRoutes from "./routes/studio.routes.js";
 import { toNodeHandler } from "better-auth/node";
 import { getAuth } from "./auth/auth.js";
+import bookingRoutes from "./routes/booking.routes.js";
+
 
 const app = express();
 
@@ -32,5 +34,5 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use("/api/studios", studioRoutes);
-
+app.use("/api/bookings", bookingRoutes);
 export default app;
