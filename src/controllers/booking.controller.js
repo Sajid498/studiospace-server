@@ -69,23 +69,28 @@ if (conflictingBooking) {
 }
 
 
-    const booking = {
-      studioId: new ObjectId(studioId),
-      studioTitle: studio.title,
-      studioImage: studio.image,
-      hostId: studio.hostId,
-      hostName: studio.hostName,
-      hostEmail: studio.hostEmail,
-      renterId: req.user.id,
-      renterName: req.user.name,
-      renterEmail: req.user.email,
-      startAt: start,
-      endAt: end,
-      hourlyRate: studio.hourlyRate,
-      status: "Pending",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+const duration = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+
+const booking = {
+  studioId: new ObjectId(studioId),
+  studioTitle: studio.title,
+  studioImage: studio.image,
+  studioCategory: studio.category,
+  location: studio.location,
+  hostId: studio.hostId,
+  hostName: studio.hostName,
+  hostEmail: studio.hostEmail,
+  renterId: req.user.id,
+  renterName: req.user.name,
+  renterEmail: req.user.email,
+  startAt: start,
+  endAt: end,
+  hourlyRate: Number(studio.hourlyRate),
+  totalPrice: duration * Number(studio.hourlyRate),
+  status: "Pending",
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
 
     const result = await db.collection("bookings").insertOne(booking);
 
@@ -107,13 +112,72 @@ export const getMyBookings = async (req, res, next) => {
     const db = getDB();
 
     const bookings = await db.collection("bookings")
-      .find({
-        $or: [
-          { renterId: req.user.id },
-          { hostId: req.user.id },
-        ],
-      })
-      .sort({ createdAt: -1 })
+      .aggregate([
+        {
+          $match: {
+            $or: [
+              { renterId: req.user.id },
+              { hostId: req.user.id },
+            ],
+          },
+        },
+        {
+          $lookup: {
+            from: "studios",
+            localField: "studioId",
+            foreignField: "_id",
+            as: "studio",
+          },
+        },
+        {
+          $unwind: {
+            path: "$studio",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $addFields: {
+            studioCategory: {
+              $ifNull: ["$studioCategory", "$studio.category"],
+            },
+            location: {
+              $ifNull: ["$location", "$studio.location"],
+            },
+            studioImage: {
+              $ifNull: ["$studioImage", "$studio.image"],
+            },
+            studioTitle: {
+              $ifNull: ["$studioTitle", "$studio.title"],
+            },
+            totalPrice: {
+              $ifNull: [
+                "$totalPrice",
+                {
+                  $multiply: [
+                    "$hourlyRate",
+                    {
+                      $divide: [
+                        { $subtract: ["$endAt", "$startAt"] },
+                        3600000,
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+        {
+          $project: {
+            studio: 0,
+          },
+        },
+        {
+          $sort: {
+            createdAt: -1,
+          },
+        },
+      ])
       .toArray();
 
     res.status(200).json({
