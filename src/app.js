@@ -3,9 +3,10 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import studioRoutes from "./routes/studio.routes.js";
+import bookingRoutes from "./routes/booking.routes.js";
+import uploadRoutes from "./routes/upload.routes.js";
 import { toNodeHandler } from "better-auth/node";
 import { getAuth } from "./auth/auth.js";
-import bookingRoutes from "./routes/booking.routes.js";
 import {
   notFound,
   errorHandler,
@@ -38,6 +39,9 @@ app.get("/api/health", (req, res) => {
 
 app.use("/api/studios", studioRoutes);
 app.use("/api/bookings", bookingRoutes);
-export default app;
+app.use("/api/uploads", uploadRoutes);
+
 app.use(notFound);
 app.use(errorHandler);
+
+export default app;
