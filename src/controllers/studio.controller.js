@@ -5,7 +5,10 @@ import { getDB } from "../config/database.js";
 export const getAllStudios = async (req, res, next) => {
   try {
     const db = getDB();
-    const studios = await db.collection("studios").find({}).sort({ createdAt: -1 }).toArray();
+    const studios = await db.collection("studios")
+  .find({}, { projection: { hostEmail: 0 } })
+  .sort({ createdAt: -1 })
+  .toArray();
 
     res.status(200).json({
       success: true,
@@ -30,9 +33,10 @@ export const getStudioById = async (req, res, next) =>
     }
 
     const db = getDB();
-    const studio = await db.collection("studios").findOne({
-      _id: new ObjectId(id),
-    });
+const studio = await db.collection("studios").findOne(
+  { _id: new ObjectId(id) },
+  { projection: { hostEmail: 0 } }
+);
 
     if (!studio) {
       return res.status(404).json({
