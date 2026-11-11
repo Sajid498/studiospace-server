@@ -1,6 +1,7 @@
 
 import express from "express";
 import cors from "cors";
+import reviewRoutes from "./routes/review.routes.js";
 import cookieParser from "cookie-parser";
 import studioRoutes from "./routes/studio.routes.js";
 import bookingRoutes from "./routes/booking.routes.js";
@@ -39,6 +40,7 @@ app.get("/api/health", (req, res) => {
 
 app.use("/api/studios", studioRoutes);
 app.use("/api/bookings", bookingRoutes);
+app.use("/api/reviews", reviewRoutes);
 app.use("/api/uploads", uploadRoutes);
 
 app.use(notFound);

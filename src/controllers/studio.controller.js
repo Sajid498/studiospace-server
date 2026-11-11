@@ -2,13 +2,64 @@
 import { ObjectId } from "mongodb";
 import { getDB } from "../config/database.js";
 
+const studioRatingPipeline = [
+  {
+    $lookup: {
+      from: "reviews",
+      let: { currentStudioId: "$_id" },
+      pipeline: [
+        {
+          $match: {
+            $expr: {
+              $eq: ["$studioId", "$$currentStudioId"],
+            },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            averageRating: { $avg: "$rating" },
+            reviewCount: { $sum: 1 },
+          },
+        },
+      ],
+      as: "reviewStats",
+    },
+  },
+  {
+    $addFields: {
+      averageRating: {
+        $ifNull: [
+          { $arrayElemAt: ["$reviewStats.averageRating", 0] },
+          null,
+        ],
+      },
+      reviewCount: {
+        $ifNull: [
+          { $arrayElemAt: ["$reviewStats.reviewCount", 0] },
+          0,
+        ],
+      },
+    },
+  },
+  {
+    $project: {
+      hostEmail: 0,
+      reviewStats: 0,
+    },
+  },
+];
+
 export const getAllStudios = async (req, res, next) => {
   try {
     const db = getDB();
+
     const studios = await db.collection("studios")
-  .find({}, { projection: { hostEmail: 0 } })
-  .sort({ createdAt: -1 })
-  .toArray();
+      .aggregate([
+        { $sort: { createdAt: -1 } },
+        ...studioRatingPipeline,
+      ])
+      .toArray();
 
     res.status(200).json({
       success: true,
@@ -20,8 +71,7 @@ export const getAllStudios = async (req, res, next) => {
   }
 };
 
-export const getStudioById = async (req, res, next) => 
-    {
+export const getStudioById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -33,10 +83,15 @@ export const getStudioById = async (req, res, next) =>
     }
 
     const db = getDB();
-const studio = await db.collection("studios").findOne(
-  { _id: new ObjectId(id) },
-  { projection: { hostEmail: 0 } }
-);
+
+    const studios = await db.collection("studios")
+      .aggregate([
+        { $match: { _id: new ObjectId(id) } },
+        ...studioRatingPipeline,
+      ])
+      .toArray();
+
+    const studio = studios[0];
 
     if (!studio) {
       return res.status(404).json({
@@ -53,8 +108,6 @@ const studio = await db.collection("studios").findOne(
     next(error);
   }
 };
-
-
 
 export const createStudio = async (req, res, next) => {
   try {
@@ -82,7 +135,12 @@ export const createStudio = async (req, res, next) => {
     };
 
     const missingFields = Object.entries(requiredFields)
-      .filter(([, value]) => value === undefined || value === null || String(value).trim() === "")
+      .filter(
+        ([, value]) =>
+          value === undefined ||
+          value === null ||
+          String(value).trim() === ""
+      )
       .map(([field]) => field);
 
     if (missingFields.length > 0) {
@@ -227,7 +285,12 @@ export const updateStudio = async (req, res, next) => {
     };
 
     const missingFields = Object.entries(requiredFields)
-      .filter(([, value]) => value === undefined || value === null || String(value).trim() === "")
+      .filter(
+        ([, value]) =>
+          value === undefined ||
+          value === null ||
+          String(value).trim() === ""
+      )
       .map(([field]) => field);
 
     if (missingFields.length > 0) {
@@ -302,14 +365,17 @@ export const updateStudio = async (req, res, next) => {
       });
     }
 
-    const studio = await db.collection("studios").findOne({
-      _id: new ObjectId(id),
-    });
+    const studios = await db.collection("studios")
+      .aggregate([
+        { $match: { _id: new ObjectId(id) } },
+        ...studioRatingPipeline,
+      ])
+      .toArray();
 
     res.status(200).json({
       success: true,
       message: "Studio updated successfully",
-      data: studio,
+      data: studios[0],
     });
   } catch (error) {
     next(error);

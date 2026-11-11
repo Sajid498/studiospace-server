@@ -31,6 +31,15 @@ export const connectDB = async () => {
     await db.command({ ping: 1 });
 
     await Promise.all([
+
+      db.collection("reviews").createIndex(
+  { bookingId: 1 },
+  { unique: true }
+),
+db.collection("reviews").createIndex({
+  studioId: 1,
+  createdAt: -1,
+}),
   db.collection("studios").createIndex({ createdAt: -1 }),
   db.collection("studios").createIndex({ hostId: 1 }),
   db.collection("bookings").createIndex({
