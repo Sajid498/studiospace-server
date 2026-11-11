@@ -18,6 +18,18 @@ export const getAuth = () => {
         enabled: true,
         minPasswordLength: 6,
       },
+      socialProviders: {
+        google: {
+          clientId: process.env.GOOGLE_CLIENT_ID,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        },
+      },
+      account: {
+        accountLinking: {
+          enabled: true,
+          trustedProviders: ["google"],
+        },
+      },
       session: {
         cookieCache: {
           enabled: true,
