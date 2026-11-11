@@ -332,15 +332,15 @@ export const updateBookingStatus = async (req, res, next) => {
         return;
       }
 
-      if (status === "Confirmed") {
-
         if (status === "Completed" && booking.endAt > new Date()) {
-  errorResponse = {
-    status: 400,
-    message: "A booking cannot be completed before its scheduled end time",
-  };
-  return;
-}
+        errorResponse = {
+          status: 400,
+          message: "A booking cannot be completed before its scheduled end time",
+        };
+        return;
+      }
+
+      if (status === "Confirmed") {
         const lockResult = await db.collection("studios").updateOne(
           { _id: booking.studioId },
           { $inc: { bookingVersion: 1 } },
