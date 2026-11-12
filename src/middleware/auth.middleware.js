@@ -1,48 +1,35 @@
 
-import { createRemoteJWKSet, jwtVerify } from "jose";
-
-const authBaseURL =
-  process.env.BETTER_AUTH_URL || "http://localhost:5000";
-
-const JWKS = createRemoteJWKSet(
-  new URL(`${authBaseURL}/api/auth/jwks`)
-);
+import { fromNodeHeaders } from "better-auth/node";
+import { getAuth } from "../auth/auth.js";
 
 export const verifyJWT = async (req, res, next) => {
   try {
-    const token = req.cookies?.["better-auth.session_data"];
+    const session = await getAuth().api.getSession({
+      headers: fromNodeHeaders(req.headers),
+    });
 
-    if (!token) {
+    if (!session || !session.user) {
       return res.status(401).json({
         success: false,
         message: "Authentication required",
       });
     }
 
-    const { payload } = await jwtVerify(token, JWKS, {
-      issuer: authBaseURL,
-      audience: "better-auth:session-cache",
-      algorithms: ["EdDSA"],
-    });
+    req.user = {
+      id: session.user.id,
+      name: session.user.name,
+      email: session.user.email,
+    };
 
-    if (!payload.sub) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid authentication token",
-      });
-    }
+    req.session = session.session;
 
-   req.user = {
-  id: payload.sub,
-  name: payload.user.name,
-  email: payload.user.email,
-};
-
-    next();
+    return next();
   } catch (error) {
-    return res.status(401).json({
+    console.error("Authentication middleware error:", error);
+
+    return res.status(500).json({
       success: false,
-      message: "Invalid or expired authentication token",
+      message: "Authentication verification failed",
     });
   }
 };
